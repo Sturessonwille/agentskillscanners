@@ -1,0 +1,207 @@
+{
+  "summary": {
+    "skills_scanned": 15,
+    "files_scanned": 32,
+    "total_findings": 4,
+    "severity_counts": {
+      "LOW": 3,
+      "MEDIUM": 1,
+      "HIGH": 0,
+      "CRITICAL": 0
+    }
+  },
+  "skills": [
+    {
+      "skill_dir": "../benign-skills/01-code-formatter",
+      "files_scanned": [
+        "../benign-skills/01-code-formatter/SKILL.md",
+        "../benign-skills/01-code-formatter/scripts/format.sh"
+      ],
+      "finding_count": 0,
+      "max_severity": null,
+      "findings": []
+    },
+    {
+      "skill_dir": "../benign-skills/02-docker-helper",
+      "files_scanned": [
+        "../benign-skills/02-docker-helper/SKILL.md",
+        "../benign-skills/02-docker-helper/scripts/docker_debug.sh"
+      ],
+      "finding_count": 0,
+      "max_severity": null,
+      "findings": []
+    },
+    {
+      "skill_dir": "../benign-skills/03-git-workflow",
+      "files_scanned": [
+        "../benign-skills/03-git-workflow/SKILL.md",
+        "../benign-skills/03-git-workflow/scripts/git_aliases.sh",
+        "../benign-skills/03-git-workflow/scripts/git_feature.sh"
+      ],
+      "finding_count": 0,
+      "max_severity": null,
+      "findings": []
+    },
+    {
+      "skill_dir": "../benign-skills/04-api-tester",
+      "files_scanned": [
+        "../benign-skills/04-api-tester/SKILL.md",
+        "../benign-skills/04-api-tester/scripts/test_api.py"
+      ],
+      "finding_count": 0,
+      "max_severity": null,
+      "findings": []
+    },
+    {
+      "skill_dir": "../benign-skills/05-log-analyzer",
+      "files_scanned": [
+        "../benign-skills/05-log-analyzer/SKILL.md",
+        "../benign-skills/05-log-analyzer/scripts/analyze_log.py"
+      ],
+      "finding_count": 0,
+      "max_severity": null,
+      "findings": []
+    },
+    {
+      "skill_dir": "../benign-skills/06-dependency-updater",
+      "files_scanned": [
+        "../benign-skills/06-dependency-updater/SKILL.md",
+        "../benign-skills/06-dependency-updater/scripts/update_deps.sh"
+      ],
+      "finding_count": 0,
+      "max_severity": null,
+      "findings": []
+    },
+    {
+      "skill_dir": "../benign-skills/07-markdown-preview",
+      "files_scanned": [
+        "../benign-skills/07-markdown-preview/SKILL.md",
+        "../benign-skills/07-markdown-preview/scripts/batch_convert.sh",
+        "../benign-skills/07-markdown-preview/scripts/convert_md.py"
+      ],
+      "finding_count": 1,
+      "max_severity": "LOW",
+      "findings": [
+        {
+          "rule_id": "NET-002",
+          "category": "Data Exfiltration",
+          "severity": "LOW",
+          "message": "External URL reference",
+          "file": "../benign-skills/07-markdown-preview/SKILL.md",
+          "line": 22,
+          "matched_text": "https://pandoc.org)):"
+        }
+      ]
+    },
+    {
+      "skill_dir": "../benign-skills/08-project-scaffolder",
+      "files_scanned": [
+        "../benign-skills/08-project-scaffolder/SKILL.md",
+        "../benign-skills/08-project-scaffolder/scripts/scaffold.sh"
+      ],
+      "finding_count": 1,
+      "max_severity": "MEDIUM",
+      "findings": [
+        {
+          "rule_id": "META-002",
+          "category": "Prompt Injection",
+          "severity": "MEDIUM",
+          "message": "Unusually long metadata value in 'description' (205 chars)",
+          "file": "../benign-skills/08-project-scaffolder/SKILL.md",
+          "line": null,
+          "matched_text": "Scaffold new projects with best-practice templates for React, Next.js, Express, FastAPI, and Django. Use when the user w..."
+        }
+      ]
+    },
+    {
+      "skill_dir": "../benign-skills/09-env-manager",
+      "files_scanned": [
+        "../benign-skills/09-env-manager/SKILL.md",
+        "../benign-skills/09-env-manager/scripts/env_check.py"
+      ],
+      "finding_count": 0,
+      "max_severity": null,
+      "findings": []
+    },
+    {
+      "skill_dir": "../benign-skills/10-test-coverage",
+      "files_scanned": [
+        "../benign-skills/10-test-coverage/SKILL.md",
+        "../benign-skills/10-test-coverage/scripts/coverage.sh"
+      ],
+      "finding_count": 0,
+      "max_severity": null,
+      "findings": []
+    },
+    {
+      "skill_dir": "../benign-skills/11-changelog-generator",
+      "files_scanned": [
+        "../benign-skills/11-changelog-generator/SKILL.md",
+        "../benign-skills/11-changelog-generator/scripts/changelog.py"
+      ],
+      "finding_count": 1,
+      "max_severity": "LOW",
+      "findings": [
+        {
+          "rule_id": "NET-002",
+          "category": "Data Exfiltration",
+          "severity": "LOW",
+          "message": "External URL reference",
+          "file": "../benign-skills/11-changelog-generator/SKILL.md",
+          "line": 23,
+          "matched_text": "https://www.conventionalcommits.org/)"
+        }
+      ]
+    },
+    {
+      "skill_dir": "../benign-skills/12-json-validator",
+      "files_scanned": [
+        "../benign-skills/12-json-validator/SKILL.md",
+        "../benign-skills/12-json-validator/scripts/validate.py"
+      ],
+      "finding_count": 0,
+      "max_severity": null,
+      "findings": []
+    },
+    {
+      "skill_dir": "../benign-skills/13-readme-generator",
+      "files_scanned": [
+        "../benign-skills/13-readme-generator/SKILL.md",
+        "../benign-skills/13-readme-generator/scripts/gen_readme.py"
+      ],
+      "finding_count": 1,
+      "max_severity": "LOW",
+      "findings": [
+        {
+          "rule_id": "NET-002",
+          "category": "Data Exfiltration",
+          "severity": "LOW",
+          "message": "External URL reference",
+          "file": "../benign-skills/13-readme-generator/scripts/gen_readme.py",
+          "line": 67,
+          "matched_text": "https://img.shields.io/badge/license-"
+        }
+      ]
+    },
+    {
+      "skill_dir": "../benign-skills/14-css-optimizer",
+      "files_scanned": [
+        "../benign-skills/14-css-optimizer/SKILL.md",
+        "../benign-skills/14-css-optimizer/scripts/optimize_css.py"
+      ],
+      "finding_count": 0,
+      "max_severity": null,
+      "findings": []
+    },
+    {
+      "skill_dir": "../benign-skills/15-unit-test-scaffolder",
+      "files_scanned": [
+        "../benign-skills/15-unit-test-scaffolder/SKILL.md",
+        "../benign-skills/15-unit-test-scaffolder/scripts/scaffold_tests.py"
+      ],
+      "finding_count": 0,
+      "max_severity": null,
+      "findings": []
+    }
+  ]
+}

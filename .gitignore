@@ -1,0 +1,22 @@
+.env
+.env.*
+!.env.example
+
+.venv/
+venv/
+env/
+
+__pycache__/
+*.py[cod]
+*$py.class
+
+.DS_Store
+*.log
+
+# Local editor and tool state
+.cursor/
+.vscode/
+
+# AI scanner local environment
+ai-scanner/.env
+ai-scanner/.venv/

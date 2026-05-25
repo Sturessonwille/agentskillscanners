@@ -1,0 +1,240 @@
+Found 15 skill(s) in /Users/wille/scrapingskills/vulnarableskills/benign-skills
+[config] Per-call timeout: 600s, concurrency: 5
+
+[triage] Skipped (--mode deep)
+
+[deep] Analyzing 01-code-formatter with 4 specialists …
+  Prompt Injection Specialist: BENIGN
+  Code Security Analyst: BENIGN
+  Obfuscation Detector: BENIGN
+  Consistency Checker: BENIGN
+[aggregate] Merging findings for 01-code-formatter …
+  -> BENIGN
+
+[deep] Analyzing 02-docker-helper with 4 specialists …
+  Prompt Injection Specialist: BENIGN
+  Code Security Analyst: BENIGN
+  Obfuscation Detector: BENIGN
+  Consistency Checker: BENIGN
+[aggregate] Merging findings for 02-docker-helper …
+  -> BENIGN
+
+[deep] Analyzing 03-git-workflow with 4 specialists …
+  Prompt Injection Specialist: BENIGN
+  Code Security Analyst: BENIGN
+  Obfuscation Detector: BENIGN
+  Consistency Checker: BENIGN
+[aggregate] Merging findings for 03-git-workflow …
+  -> BENIGN
+
+[deep] Analyzing 04-api-tester with 4 specialists …
+  Prompt Injection Specialist: BENIGN
+  Code Security Analyst: BENIGN
+  Obfuscation Detector: BENIGN
+  Consistency Checker: BENIGN
+[aggregate] Merging findings for 04-api-tester …
+  -> BENIGN
+
+[deep] Analyzing 05-log-analyzer with 4 specialists …
+  Prompt Injection Specialist: BENIGN
+  Code Security Analyst: BENIGN
+  Obfuscation Detector: BENIGN
+  Consistency Checker: BENIGN
+[aggregate] Merging findings for 05-log-analyzer …
+  -> BENIGN
+
+[deep] Analyzing 06-dependency-updater with 4 specialists …
+  Prompt Injection Specialist: BENIGN
+  Code Security Analyst: BENIGN
+  Obfuscation Detector: BENIGN
+  Consistency Checker: BENIGN
+[aggregate] Merging findings for 06-dependency-updater …
+  -> BENIGN
+
+[deep] Analyzing 07-markdown-preview with 4 specialists …
+  Prompt Injection Specialist: BENIGN
+  Code Security Analyst: BENIGN
+  Obfuscation Detector: BENIGN
+  Consistency Checker: BENIGN
+[aggregate] Merging findings for 07-markdown-preview …
+  -> BENIGN
+
+[deep] Analyzing 08-project-scaffolder with 4 specialists …
+  Prompt Injection Specialist: BENIGN
+  Code Security Analyst: BENIGN
+  Obfuscation Detector: BENIGN
+  Consistency Checker: BENIGN
+[aggregate] Merging findings for 08-project-scaffolder …
+  -> BENIGN
+
+[deep] Analyzing 09-env-manager with 4 specialists …
+  Prompt Injection Specialist: BENIGN
+  Code Security Analyst: BENIGN
+  Obfuscation Detector: BENIGN
+  Consistency Checker: BENIGN
+[aggregate] Merging findings for 09-env-manager …
+  -> BENIGN
+
+[deep] Analyzing 10-test-coverage with 4 specialists …
+  Prompt Injection Specialist: BENIGN
+  Code Security Analyst: BENIGN
+  Obfuscation Detector: BENIGN
+  Consistency Checker: BENIGN
+[aggregate] Merging findings for 10-test-coverage …
+  -> BENIGN
+
+[deep] Analyzing 11-changelog-generator with 4 specialists …
+  Prompt Injection Specialist: BENIGN
+  Code Security Analyst: BENIGN
+  Obfuscation Detector: BENIGN
+  Consistency Checker: BENIGN
+[aggregate] Merging findings for 11-changelog-generator …
+  -> BENIGN
+
+[deep] Analyzing 12-json-validator with 4 specialists …
+  Prompt Injection Specialist: BENIGN
+  Code Security Analyst: BENIGN
+  Obfuscation Detector: BENIGN
+  Consistency Checker: BENIGN
+[aggregate] Merging findings for 12-json-validator …
+  -> BENIGN
+
+[deep] Analyzing 13-readme-generator with 4 specialists …
+  Prompt Injection Specialist: BENIGN
+  Code Security Analyst: BENIGN
+  Obfuscation Detector: BENIGN
+  Consistency Checker: BENIGN
+[aggregate] Merging findings for 13-readme-generator …
+  -> BENIGN
+
+[deep] Analyzing 14-css-optimizer with 4 specialists …
+  Prompt Injection Specialist: BENIGN
+  Code Security Analyst: BENIGN
+  Obfuscation Detector: BENIGN
+  Consistency Checker: BENIGN
+[aggregate] Merging findings for 14-css-optimizer …
+  -> BENIGN
+
+[deep] Analyzing 15-unit-test-scaffolder with 4 specialists …
+  Prompt Injection Specialist: BENIGN
+  Code Security Analyst: BENIGN
+  Obfuscation Detector: BENIGN
+  Consistency Checker: BENIGN
+[aggregate] Merging findings for 15-unit-test-scaffolder …
+  -> BENIGN
+
+{
+  "scan_summary": {
+    "total_skills": 15,
+    "malicious": 0,
+    "suspicious": 0,
+    "benign": 15
+  },
+  "results": [
+    {
+      "skill_dir": "/Users/wille/scrapingskills/vulnarableskills/benign-skills/01-code-formatter",
+      "verdict": "BENIGN",
+      "confidence": 0.99,
+      "summary": "All specialists assessed this skill as benign. It appears to be a straightforward local code-formatting utility with transparent documentation and no signs of prompt injection, unsafe code behavior, obfuscation, or inconsistencies between claims and implementation.",
+      "findings": []
+    },
+    {
+      "skill_dir": "/Users/wille/scrapingskills/vulnarableskills/benign-skills/02-docker-helper",
+      "verdict": "BENIGN",
+      "confidence": 0.99,
+      "summary": "All four specialists assessed this skill as benign. The skill appears to be a straightforward Docker troubleshooting helper with documentation and script behavior that are consistent, unobfuscated, and free of prompt injection or dangerous code patterns.",
+      "findings": []
+    },
+    {
+      "skill_dir": "/Users/wille/scrapingskills/vulnarableskills/benign-skills/03-git-workflow",
+      "verdict": "BENIGN",
+      "confidence": 0.99,
+      "summary": "All specialists assessed this git workflow skill as benign. The documentation and scripts appear consistent with standard local git/gh automation, with no signs of prompt injection, dangerous code behavior, obfuscation, or hidden functionality.",
+      "findings": []
+    },
+    {
+      "skill_dir": "/Users/wille/scrapingskills/vulnarableskills/benign-skills/04-api-tester",
+      "verdict": "BENIGN",
+      "confidence": 0.99,
+      "summary": "All four specialists assessed this skill as benign with strong agreement. The skill appears to be a straightforward API testing utility with no signs of prompt injection, dangerous code behavior, obfuscation, or inconsistencies between documentation and implementation.",
+      "findings": []
+    },
+    {
+      "skill_dir": "/Users/wille/scrapingskills/vulnarableskills/benign-skills/05-log-analyzer",
+      "verdict": "BENIGN",
+      "confidence": 0.99,
+      "summary": "All specialists assessed this skill as benign. It appears to be a straightforward local log analysis utility with consistent documentation and behavior, and no signs of prompt injection, dangerous code patterns, obfuscation, or deceptive packaging.",
+      "findings": []
+    },
+    {
+      "skill_dir": "/Users/wille/scrapingskills/vulnarableskills/benign-skills/06-dependency-updater",
+      "verdict": "BENIGN",
+      "confidence": 0.98,
+      "summary": "All four specialists assessed this skill as benign with strong agreement. The skill appears to transparently perform dependency updating and auditing for Node.js and Python projects, with no signs of prompt injection, unsafe code behavior, obfuscation, or inconsistencies between documentation and implementation.",
+      "findings": []
+    },
+    {
+      "skill_dir": "/Users/wille/scrapingskills/vulnarableskills/benign-skills/07-markdown-preview",
+      "verdict": "BENIGN",
+      "confidence": 0.99,
+      "summary": "All four specialists agree that this skill is a straightforward local Markdown preview/conversion utility with no evidence of prompt injection, dangerous code behavior, obfuscation, or mismatches between documentation and implementation.",
+      "findings": []
+    },
+    {
+      "skill_dir": "/Users/wille/scrapingskills/vulnarableskills/benign-skills/08-project-scaffolder",
+      "verdict": "BENIGN",
+      "confidence": 0.98,
+      "summary": "All specialists assessed this skill as benign. It appears to be a straightforward project scaffolding utility with consistent documentation and no signs of prompt injection, unsafe code behavior, obfuscation, or misleading claims.",
+      "findings": []
+    },
+    {
+      "skill_dir": "/Users/wille/scrapingskills/vulnarableskills/benign-skills/09-env-manager",
+      "verdict": "BENIGN",
+      "confidence": 0.99,
+      "summary": "All specialists assessed this skill as benign. It appears to be a straightforward local .env validation/export utility with no signs of prompt injection, unsafe code behavior, obfuscation, or inconsistencies between documentation and implementation.",
+      "findings": []
+    },
+    {
+      "skill_dir": "/Users/wille/scrapingskills/vulnarableskills/benign-skills/10-test-coverage",
+      "verdict": "BENIGN",
+      "confidence": 0.98,
+      "summary": "All four specialists assessed this skill as benign and found it to be a straightforward test coverage helper for Python and Node.js projects. No prompt injection, dangerous code behavior, obfuscation, or inconsistencies were identified.",
+      "findings": []
+    },
+    {
+      "skill_dir": "/Users/wille/scrapingskills/vulnarableskills/benign-skills/11-changelog-generator",
+      "verdict": "BENIGN",
+      "confidence": 0.99,
+      "summary": "All four specialists assessed this skill as benign. It appears to be a straightforward local changelog generator for git repositories, with no evidence of prompt injection, dangerous code behavior, obfuscation, or inconsistencies between claims and implementation.",
+      "findings": []
+    },
+    {
+      "skill_dir": "/Users/wille/scrapingskills/vulnarableskills/benign-skills/12-json-validator",
+      "verdict": "BENIGN",
+      "confidence": 0.99,
+      "summary": "All specialists assessed this skill as benign. It appears to be a straightforward local JSON/YAML validation and formatting utility with no signs of prompt injection, dangerous code behavior, obfuscation, or inconsistencies between documentation and implementation.",
+      "findings": []
+    },
+    {
+      "skill_dir": "/Users/wille/scrapingskills/vulnarableskills/benign-skills/13-readme-generator",
+      "verdict": "BENIGN",
+      "confidence": 0.99,
+      "summary": "All specialists assessed the skill as benign. It behaves consistently with a local README generator and shows no signs of prompt injection, dangerous code behavior, obfuscation, or mismatches between claims and implementation.",
+      "findings": []
+    },
+    {
+      "skill_dir": "/Users/wille/scrapingskills/vulnarableskills/benign-skills/14-css-optimizer",
+      "verdict": "BENIGN",
+      "confidence": 0.99,
+      "summary": "All four specialists independently assessed this skill as benign. It appears to be a straightforward local CSS optimization/minification utility with no evidence of prompt injection, unsafe code behavior, obfuscation, or inconsistencies between documentation and implementation.",
+      "findings": []
+    },
+    {
+      "skill_dir": "/Users/wille/scrapingskills/vulnarableskills/benign-skills/15-unit-test-scaffolder",
+      "verdict": "BENIGN",
+      "confidence": 0.99,
+      "summary": "All specialists assessed this skill as benign. It appears to be a straightforward local unit test scaffolding utility using Python AST parsing, with no identified prompt injection, insecure code behavior, obfuscation, or inconsistencies between documentation and implementation.",
+      "findings": []
+    }
+  ]
+}

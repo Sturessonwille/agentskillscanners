@@ -1,0 +1,230 @@
+\chapter{Design and Implementation}
+\label{ch:design}
+
+This chapter presents the concrete architecture, design decisions, and implementation details of the security scanning system introduced conceptually in Chapter~\ref{ch:methodology}. The system comprises two complementary scanners---a static pattern-based scanner and an AI-assisted multi-agent scanner---both targeting AI agent skills that follow the \texttt{SKILL.md} format. Section~\ref{sec:overview} describes the overall system architecture and technology stack. Sections~\ref{sec:static} and~\ref{sec:ai} detail the implementation of each scanner. Section~\ref{sec:tradeoffs} discusses the key design decisions and their trade-offs.
+
+% ===================================================================
+\section{System Overview}
+\label{sec:overview}
+% ===================================================================
+
+\subsection{High-Level Architecture}
+
+The scanning system is organised around two independent but interoperable analysis pipelines that share a common vulnerability taxonomy and input format. A skill, the unit of analysis, is a directory containing a \texttt{SKILL.md} manifest file---with optional YAML frontmatter for metadata and markdown-formatted instructions for the AI agent---and an optional \texttt{scripts/} subdirectory holding executable shell, Python, or other script files. Both scanners consume this same directory structure and classify their findings according to an identical eight-category taxonomy and four-level severity scale.
+
+The static scanner operates as a self-contained command-line tool that performs deterministic, regex-based pattern matching against skill contents. The AI scanner implements a multi-phase, multi-agent pipeline that sends skill contents to OpenAI language models for semantic analysis. The two scanners can be invoked independently or combined: the AI scanner exposes a \texttt{-{}-compare} flag that executes the static scanner as a subprocess and includes its output alongside the AI-generated findings, enabling side-by-side comparison for evaluation purposes.
+
+\subsection{Project Structure}
+
+The repository is organised into three top-level directories:
+
+\begin{itemize}
+    \item \texttt{scanner/} --- Contains \texttt{scan.py}, the static pattern-based scanner (a single-file implementation of approximately 1{,}000 lines).
+    \item \texttt{ai-scanner/} --- Contains the AI-assisted scanner, decomposed into multiple modules:
+    \begin{itemize}
+        \item \texttt{ai\_scan.py} --- The command-line entry point and pipeline orchestration logic.
+        \item \texttt{agent\_defs/} --- A package of agent definition modules, one per specialist agent plus shared prompt fragments and the aggregator.
+        \item \texttt{tools.py} --- Utility functions for skill discovery, file loading, and static scanner integration.
+        \item \texttt{agents.py} --- A re-export of the OpenAI Agents SDK, providing the \texttt{Agent} and \texttt{Runner} abstractions used throughout.
+    \end{itemize}
+    \item \texttt{vulnerable-skills/} and \texttt{benign-skills/} --- The evaluation dataset, comprising 15 purpose-built vulnerable skills and 15 benign skills that serve as a balanced ground-truth set for evaluation (discussed in Chapter~\ref{ch:results}).
+\end{itemize}
+
+\subsection{Technology Stack and Dependencies}
+
+The static scanner is implemented in Python~3.12 and relies on the Python standard library for regex matching (\texttt{re}), file I/O (\texttt{pathlib}, \texttt{os}), base64 decoding (\texttt{base64}), and JSON serialisation (\texttt{json}). The only external dependency is \texttt{PyYAML} for parsing YAML frontmatter in skill manifests.
+
+The AI scanner extends this stack with the OpenAI Agents SDK (\texttt{openai-agents}), which provides the \texttt{Agent} abstraction for defining LLM-backed agents with system prompts, and the \texttt{Runner} class for executing agents asynchronously. Environment management uses \texttt{python-dotenv} for loading API keys from \texttt{.env} files. The pipeline relies on Python's \texttt{asyncio} for concurrent agent execution.
+
+Both scanners share the same vulnerability taxonomy, defined as an enumeration of eight categories (Prompt Injection, Privilege Escalation, Code Execution, Data Exfiltration, Persistence, Obfuscation, Supply Chain, and Config Tampering) and four severity levels (CRITICAL, HIGH, MEDIUM, and LOW). In the static scanner, these are implemented as Python \texttt{Enum} classes; in the AI scanner, they are embedded as natural-language definitions within the shared prompt fragments that all agents receive.
+
+% ===================================================================
+\section{Static Pattern-Based Scanner}
+\label{sec:static}
+% ===================================================================
+
+The static scanner (\texttt{scanner/scan.py}) implements a deterministic analysis pipeline that applies regular expression matching and heuristic checks to every file within a skill directory. Its design prioritises speed, reproducibility, and zero external service dependencies.
+
+\subsection{Parsing Flow}
+
+When invoked, the scanner accepts a path argument that may point to a single \texttt{SKILL.md} file, a single skill directory, or a parent directory containing multiple skill directories. In the latter case, it recursively walks the filesystem to discover all directories containing a \texttt{SKILL.md} file. For each discovered skill, the scanner proceeds through the following stages:
+
+\begin{enumerate}
+    \item \textbf{SKILL.md parsing.} The scanner reads the \texttt{SKILL.md} file and splits it into YAML frontmatter (if present, delimited by \texttt{-{}-{}-} markers) and a markdown body. The frontmatter is parsed using \texttt{yaml.safe\_load} and passed to the metadata inspection subsystem. The markdown body is treated as plain text and submitted to all content-analysis checks.
+    \item \textbf{Script collection.} The scanner enumerates all files in the \texttt{scripts/} subdirectory whose extensions match a predefined set (\texttt{.sh}, \texttt{.py}, \texttt{.js}, \texttt{.ts}, \texttt{.rb}, \texttt{.pl}) and reads each as UTF-8 text.
+    \item \textbf{Content analysis.} Each file---the markdown body and every collected script---is submitted to the regex pattern engine and to each supplementary content check (Unicode detection, HTML comment extraction, base64 detection, and network indicator analysis).
+    \item \textbf{Severity filtering and output.} All findings are collected into a \texttt{ScanResult} data structure, filtered against the user-specified minimum severity threshold, and formatted for output.
+\end{enumerate}
+
+\subsection{Rule Architecture}
+
+The core of the static scanner is its library of compiled regular expressions, organised into six pattern groups. Each pattern is defined as a dictionary containing a unique rule identifier (e.g., \texttt{EXFIL-001}), the regex string, a human-readable message, a severity level, and a category from the shared taxonomy. The scanner compiles and applies all patterns on a line-by-line basis against file contents. Table~\ref{tab:pattern-groups} summarises the six groups and their composition.
+
+\begin{table}[ht]
+\centering
+\caption{Pattern groups in the static scanner rule library.}
+\label{tab:pattern-groups}
+\begin{tabular}{l r l}
+\hline
+\textbf{Group} & \textbf{Rules} & \textbf{Targets} \\
+\hline
+Shell patterns & 29 & Data exfiltration via \texttt{curl}/\texttt{wget}, remote code execution, \\
+               &    & reverse shells, privilege escalation (\texttt{sudo}, \texttt{chmod}, \texttt{chown}), \\
+               &    & sensitive file access, persistence mechanisms, \\
+               &    & config tampering, and firewall manipulation \\
+Encoded/obfuscation & 6 & Base64 decoding commands, \texttt{eval()}/\texttt{exec()} calls, \\
+                     &   & \texttt{atob()} usage, base64-to-shell pipes \\
+Prompt injection & 10 & Direct override attempts, jailbreak patterns, \\
+                 &    & identity reassignment, stealth instructions, \\
+                 &    & directive overrides \\
+Permission patterns & 2 & Requests for \texttt{"all"} sandbox permissions \\
+                    &   & or \texttt{"full\_network"} access \\
+Supply chain & 3 & \texttt{pip install} from git URLs, suspicious npm package \\
+             &   & names, packages with ``patch'' or ``hotfix'' naming \\
+Python-specific & 5 & \texttt{subprocess} shell spawning, file descriptor \\
+                &   & duplication (reverse shell pattern), outbound socket \\
+                &   & connections, \texttt{os.system()} calls \\
+\hline
+\textbf{Total} & \textbf{55} & \\
+\hline
+\end{tabular}
+\end{table}
+
+The 55~rules are concatenated into a single list at module level. During analysis, the scanner iterates over every line of a file and tests each pattern, recording matches with the rule identifier, matched text (truncated to 120~characters), and line number.
+
+\subsection{Supplementary Checks Beyond Regex}
+
+Several classes of vulnerability cannot be adequately captured by line-oriented regex matching alone. The static scanner therefore implements five supplementary analysis passes, each targeting a specific evasion technique.
+
+\subsubsection{Metadata Inspection}
+
+The YAML frontmatter parsed from \texttt{SKILL.md} is traversed recursively by a depth-first walk function. Two heuristics are applied at each node. First, every dictionary key is normalised (lowercased, hyphens converted to underscores) and checked against a set of 11 suspicious key names, including \texttt{hidden\_system\_prompt}, \texttt{override}, \texttt{hidden\_instructions}, \texttt{injection}, \texttt{payload}, \texttt{backdoor}, \texttt{callback}, \texttt{exfil}, \texttt{c2}, and \texttt{beacon}. A match produces a CRITICAL-severity finding under the Prompt Injection category. Second, any string value exceeding 200~characters triggers a MEDIUM-severity finding, as unusually long metadata values may conceal embedded instructions.
+
+\subsubsection{Hidden Unicode Detection}
+
+The scanner checks every line of content for the presence of 11~specific invisible or zero-width Unicode characters. These include zero-width space (U+200B), zero-width non-joiner (U+200C), zero-width joiner (U+200D), the byte-order mark used as zero-width no-break space (U+FEFF), word joiner (U+2060), four ``invisible'' mathematical operator characters (U+2061 through U+2064), Mongolian vowel separator (U+180E), and soft hyphen (U+00AD). Each is checked by counting occurrences per line; a non-zero count produces a HIGH-severity Obfuscation finding that reports both the character name and its count. The check emits at most one finding per line to avoid excessive noise.
+
+\subsubsection{HTML Comment Extraction and Re-Scanning}
+
+Markdown files may contain HTML comments (\texttt{<!--~...~-->}), which are invisible when rendered but remain present in the raw text consumed by AI agents. The scanner uses a regex with the \texttt{DOTALL} flag to extract all HTML comment bodies. Comments exceeding 50~characters receive a MEDIUM-severity Prompt Injection finding. Additionally, each extracted comment body is re-scanned against the full set of 10~prompt injection patterns. Any match within a comment is escalated to CRITICAL severity and annotated with a \texttt{-HIDDEN} suffix on the rule identifier, reflecting the deliberate concealment.
+
+\subsubsection{Base64 String Detection and Decoding}
+
+The scanner searches for quoted strings of 40 or more characters matching the base64 alphabet (including padding characters). For each candidate, it attempts base64 decoding followed by UTF-8 interpretation. Successfully decoded strings receive a MEDIUM-severity Obfuscation finding by default. However, if the decoded content contains any of the keywords \texttt{curl}, \texttt{wget}, \texttt{bash}, \texttt{sh}, \texttt{/bin/}, \texttt{python}, \texttt{exec}, or \texttt{eval}, the severity is escalated to CRITICAL, as the encoded payload likely conceals an executable command.
+
+\subsubsection{Network Indicator Analysis}
+
+The scanner extracts URLs matching the \texttt{http://} and \texttt{https://} schemes from every line of content. An allowlist excludes common legitimate domains---including \texttt{github.com}, \texttt{npmjs.com}, \texttt{pypi.org}, \texttt{stackoverflow.com}, any \texttt{docs.*} subdomain, \texttt{cdn.jsdelivr.net}, \texttt{unpkg.com}, \texttt{api.example.com}, \texttt{localhost}, and \texttt{127.0.0.1}---from triggering findings. URLs that pass the allowlist are checked against a secondary pattern of suspicious domain name components (e.g., \texttt{evil}, \texttt{attacker}, \texttt{malicious}, \texttt{c2}, \texttt{exfil}, \texttt{backdoor}, \texttt{phish}). A match on the suspicious pattern yields a CRITICAL-severity Data Exfiltration finding; other non-allowlisted URLs produce a LOW-severity informational finding.
+
+\subsection{Output Format and Exit Codes}
+
+The scanner supports two output formats selected via the \texttt{-{}-format} flag. The default \texttt{text} format produces a human-readable report with ANSI colour-coded severity labels (suppressible via \texttt{-{}-no-color}), grouped by skill directory with a trailing summary showing counts per severity level. The \texttt{json} format produces a structured JSON document containing a summary object and an array of per-skill results, each listing every finding with its rule identifier, category, severity, message, file path, line number, and matched text.
+
+The scanner uses a three-valued exit code scheme to facilitate integration with continuous integration pipelines and scripted workflows: exit code~0 indicates no findings, exit code~1 indicates at least one finding was reported (but none at CRITICAL severity), and exit code~2 indicates one or more CRITICAL-severity findings. This allows downstream tools to distinguish between clean results, cautionary warnings, and high-confidence threats.
+
+Severity assignment follows the static definitions embedded in each pattern rule. Unlike the AI scanner, the static scanner does not compute aggregate confidence scores; the maximum severity across all findings for a skill is reported in the per-skill header.
+
+% ===================================================================
+\section{AI-Assisted Multi-Agent Scanner}
+\label{sec:ai}
+% ===================================================================
+
+The AI scanner (\texttt{ai-scanner/}) implements a three-phase pipeline that leverages large language models to perform semantic analysis of skill contents. Rather than relying on a single monolithic LLM call, the system decomposes the analysis task across multiple specialised agents, each with a narrowly scoped system prompt. This section describes the pipeline architecture, the role and configuration of each agent, and the mechanisms for concurrency management and static scanner integration.
+
+\subsection{Pipeline Architecture}
+
+The pipeline processes skills through three sequential phases, as illustrated in Figure~\ref{fig:pipeline}:
+
+\begin{enumerate}
+    \item \textbf{Phase~1 --- Triage:} A lightweight model performs a fast first-pass classification of every skill, labelling each as \textsc{benign}, \textsc{suspicious}, or \textsc{malicious}. Only skills flagged as suspicious or malicious proceed to Phase~2.
+    \item \textbf{Phase~2 --- Specialist Analysis:} Four specialised agents analyse each flagged skill in parallel, each focusing on a distinct vulnerability domain.
+    \item \textbf{Phase~3 --- Aggregation:} A senior aggregator agent merges the specialist outputs into a single coherent report per skill, resolving conflicting verdicts and deduplicating findings.
+\end{enumerate}
+
+Before entering the pipeline, all skill contents are loaded and formatted into a structured message. The loading function (\texttt{load\_skill}) reads the \texttt{SKILL.md} file, parses its YAML frontmatter, adds line numbers to every line of content, and reads all script files from the \texttt{scripts/} subdirectory with identical line-numbering. The formatting function (\texttt{format\_skill\_message}) assembles these components into a markdown-structured message with clearly delineated sections for metadata, the \texttt{SKILL.md} body, and each script file, ensuring that every agent receives the complete skill contents with sufficient context for accurate attribution of findings to specific files and line numbers.
+
+\subsection{Phase 1: Triage}
+\label{sec:triage}
+
+The triage phase serves as a cost-reduction gate. Each skill's formatted message is submitted to the Triage Agent, which uses the \texttt{gpt-4o-mini} model. This model was selected for its low latency and cost, as the triage task requires only surface-level pattern recognition rather than deep reasoning. All skills are triaged in parallel, bounded by the concurrency semaphore.
+
+The triage agent's system prompt instructs it to classify each skill as \textsc{benign}, \textsc{suspicious}, or \textsc{malicious} and return its assessment as a structured JSON object containing the verdict, a confidence score between 0.0 and 1.0, a brief summary, and an array of preliminary findings. The agent is explicitly instructed to err on the side of caution: any skill that appears ``even slightly off'' should be marked \textsc{suspicious} rather than \textsc{benign}.
+
+Skills classified as \textsc{benign} by the triage agent bypass the computationally expensive specialist phase, and their triage result is included directly in the final report. Skills classified as \textsc{suspicious} or \textsc{malicious}, as well as any skills whose triage output fails JSON parsing (treated conservatively as potentially suspicious), proceed to Phase~2.
+
+The \texttt{-{}-mode deep} command-line flag bypasses the triage phase entirely, sending every skill directly to the specialist analysis. This mode is intended for thorough audits where the cost savings of triage are less important than comprehensive coverage.
+
+\subsection{Phase 2: Specialist Agents}
+\label{sec:specialists}
+
+Four specialist agents analyse each flagged skill in parallel. Each specialist has an exclusive scope defined by its system prompt, which explicitly instructs it to focus only on its designated domain and ``leave the rest to other specialists.'' This scope delineation is a deliberate design choice to reduce redundant analysis and encourage deeper investigation within each domain.
+
+All specialists receive the shared vulnerability taxonomy and the shared output format specification, ensuring that their findings are structurally compatible and can be merged in Phase~3. Each specialist returns a JSON object with the same schema: a verdict, confidence score, summary, and findings array where each finding includes a category, severity, description, evidence, source file, and line hint.
+
+\subsubsection{Prompt Injection Specialist}
+
+The Prompt Injection Specialist uses the \texttt{gpt-4o} model and focuses exclusively on attempts to manipulate the AI agent's behaviour through injected instructions. Its scope encompasses four sub-domains: direct prompt injection (explicit override attempts such as ``ignore previous instructions'', jailbreak patterns, and role reassignment), indirect and contextual injection (subtle behavioural manipulation through crafted context, metadata field smuggling, and HTML comment directives), social engineering of the AI (urgency patterns, stealth directives, trust exploitation, and emotional manipulation), and context window manipulation (padding or filler text, strategic placement of injection at attention boundaries, and instruction repetition). The choice of \texttt{gpt-4o} for this specialist reflects the difficulty of the task: detecting prompt injection requires nuanced understanding of language intent, which benefits from a more capable model.
+
+\subsubsection{Code Security Analyst}
+
+The Code Security Analyst uses the \texttt{gpt-4o} model and focuses on dangerous operations within executable code---both inline code blocks in \texttt{SKILL.md} and files in the \texttt{scripts/} directory. Its scope covers six areas: privilege escalation (sudo, setuid, permissions manipulation, firewall rules), dangerous code execution (piping remote content to interpreters, reverse shells, dynamic code evaluation), data exfiltration (reading sensitive files and transmitting their contents externally), persistence mechanisms (crontab, systemd, LaunchAgents, git hooks, shell RC modifications), supply chain risks (installations from unusual sources, typosquatted packages), and suspicious network activity (outbound connections to hardcoded addresses, port listening, tunnelling). This specialist receives the \texttt{gpt-4o} model because code security analysis requires reasoning about multi-step execution flows and understanding the combined effect of individually innocuous commands.
+
+\subsubsection{Obfuscation Detector}
+
+The Obfuscation Detector uses the \texttt{gpt-4o-mini} model and specialises in identifying hidden, encoded, or disguised payloads. Its scope includes encoding detection (base64, hexadecimal, URL encoding, ROT13, and multi-layer encoding), Unicode tricks (zero-width characters, homoglyph substitution, right-to-left overrides), steganographic embedding (whitespace-pattern encoding, data hidden in comments or variable names), multi-stage obfuscation (download-decode-execute chains, variable indirection, string concatenation to assemble commands), and file-level hiding (polyglot files, appended data, misleading extensions). The agent is explicitly instructed to decode any encoded content it discovers and report the decoded result. The \texttt{gpt-4o-mini} model suffices for this task because encoding detection is largely mechanical---the model needs to recognise encoding formats and apply decoding, rather than reason about semantic intent.
+
+\subsubsection{Consistency Checker}
+
+The Consistency Checker uses the \texttt{gpt-4o-mini} model and detects mismatches between a skill's stated purpose and its actual behaviour. Its scope covers metadata versus reality (whether the skill name, description, and tags match the actual functionality), instruction versus script behaviour (whether \texttt{SKILL.md} describes benign operations while scripts perform different actions, or whether scripts exist that the instructions never mention), permission overreach (whether the skill requests capabilities beyond what its stated purpose requires), deceptive packaging (mimicry of well-known benign skills, fabricated trust signals), and missing or suspicious scripts (references to nonexistent files, unexplained scripts). This specialist fills a gap that neither the static scanner nor the other AI specialists address: it reasons about the \emph{relationship} between documentation and implementation, catching attacks that disguise malicious scripts behind innocent-looking instructions. The \texttt{gpt-4o-mini} model is used because the comparison task, while requiring cross-referencing, does not demand the deep reasoning capacity needed for prompt injection detection.
+
+\subsection{Phase 3: Aggregation}
+\label{sec:aggregation}
+
+The Report Aggregator agent receives the JSON outputs from all four specialists and merges them into a single report per skill. It uses the \texttt{gpt-4o} model, as the aggregation task requires judgement about conflicting evidence and appropriate verdict resolution.
+
+The aggregator's system prompt defines four responsibilities. First, it merges all findings into a single array, removing exact duplicates (where multiple specialists cite identical evidence) but retaining distinct perspectives on the same issue, as different specialists may provide complementary context. Second, it resolves the overall verdict using an escalation policy: if any specialist reports \textsc{malicious} with reasonable evidence, the final verdict is \textsc{malicious}; if multiple specialists report \textsc{suspicious}, the verdict escalates to \textsc{malicious}; if only one specialist reports \textsc{suspicious} while others report \textsc{benign}, the verdict remains \textsc{suspicious}; and only if all specialists agree on \textsc{benign} does the final verdict reflect that. Third, it assigns a confidence score reflecting inter-specialist agreement: unanimous strong evidence maps to 0.9--1.0, majority agreement with minor dissent to 0.7--0.9, split opinions to 0.4--0.7, and weak or contradictory evidence to 0.2--0.4. Fourth, it writes a one-to-two sentence synthesis summarising the key risk, preserving source file and line number attribution from the original specialist outputs.
+
+The aggregator is explicitly instructed not to invent new findings---it may only merge, deduplicate, and synthesise what the specialists reported.
+
+\subsection{Concurrency and Model Management}
+
+All agent invocations are executed asynchronously using Python's \texttt{asyncio} event loop. A shared \texttt{asyncio.Semaphore} bounds the number of concurrent API calls to avoid exceeding rate limits. The default concurrency limit is 5, configurable via the \texttt{-{}-concurrency} flag.
+
+In Phase~1, all skills are triaged in parallel (up to the semaphore limit). In Phase~2, the four specialists for a single skill run concurrently, but skills are processed sequentially to keep the total number of in-flight requests manageable. Phase~3 runs a single aggregator call per skill after its specialists complete.
+
+The \texttt{-{}-model} flag provides a global model override: when specified, every agent in the pipeline---triage, all four specialists, and the aggregator---uses the specified model instead of its default. This facility supports both cost management (downgrading all agents to \texttt{gpt-4o-mini} for faster iteration) and quality investigation (upgrading all agents to \texttt{gpt-4o} for maximum analytical depth). The override is implemented by cloning each agent's definition with the model field replaced, preserving all other configuration.
+
+\subsection{Static Scanner Integration}
+
+The \texttt{-{}-compare} flag activates cross-scanner comparison mode. After the AI pipeline completes, the system invokes the static scanner as a subprocess, passing the same target path and requesting JSON output. The static scanner's structured results are included in the final report under a separate \texttt{static\_scanner\_results} key, enabling downstream analysis to compare the two scanners' findings on a per-skill basis.
+
+The integration is implemented in \texttt{tools.py} via a function that constructs a \texttt{subprocess.run} call to the static scanner with a 120-second timeout, captures its standard output, and parses the JSON result. Errors (timeout, invalid JSON, missing scanner) are returned as structured error objects rather than exceptions, ensuring that a static scanner failure does not abort the AI scan.
+
+% ===================================================================
+\section{Design Decisions and Trade-offs}
+\label{sec:tradeoffs}
+% ===================================================================
+
+\subsection{Pattern Category Selection}
+
+The eight vulnerability categories were selected to cover the attack surface specific to AI agent skills, as identified through analysis of existing skill repositories and documented attack vectors against LLM-based agents. Prompt Injection is included because skills are consumed as part of an LLM's context window, making them a direct vector for instruction manipulation---a threat class that does not exist in traditional software. Privilege Escalation, Code Execution, Data Exfiltration, and Persistence mirror categories from conventional static analysis tooling, adapted to the specific commands and patterns found in the shell and Python scripts that skills typically contain. Obfuscation is elevated to a first-class category because attackers targeting AI agents have a strong incentive to evade both human review and automated scanning, and techniques such as base64 encoding and zero-width Unicode characters are particularly effective when content is processed by both humans and language models. Supply Chain is included because skills frequently install external packages as part of their setup scripts, creating opportunities for dependency confusion and typosquatting attacks. Config Tampering captures a class of attacks that modifies the host environment in ways that persist beyond the skill's immediate execution, such as altering shell configuration files or SSH settings.
+
+\subsection{Multi-Agent Architecture}
+
+The decision to employ multiple specialist agents rather than a single comprehensive LLM call is motivated by three considerations. First, a single prompt that attempts to cover all eight vulnerability categories and their associated detection heuristics would exceed the practical limits of instruction-following fidelity; empirical experimentation during development showed that a monolithic prompt produced less thorough analysis and more frequently overlooked subtle findings. Second, decomposition enables parallel execution: four specialist calls running concurrently complete faster than a single sequential call would, even accounting for the additional aggregation step. Third, specialist agents produce more focused and consistent output because each system prompt can be tuned for a specific analytical lens without competing for attention with unrelated instructions.
+
+The triage phase exists as a cost-optimisation mechanism. Running four specialist agents plus an aggregator for every skill would be prohibitively expensive and slow for large repositories containing many benign skills. The triage agent, using the cheaper \texttt{gpt-4o-mini} model, filters out clearly benign skills at a fraction of the cost, allowing the expensive specialist analysis to focus on genuinely suspicious content.
+
+\subsection{Model Assignment Strategy}
+
+The assignment of models to agents balances analytical capability against cost and latency. The Prompt Injection Specialist and Code Security Analyst both receive \texttt{gpt-4o}, the more capable model, because their tasks require nuanced semantic understanding: prompt injection detection demands recognition of manipulative language patterns that may not contain obvious keywords, and code security analysis requires reasoning about the combined effect of multi-step command sequences. The Obfuscation Detector and Consistency Checker receive \texttt{gpt-4o-mini} because their tasks are more mechanical---recognising encoding formats or comparing two pieces of text for consistency---and do not benefit as substantially from the larger model's enhanced reasoning capacity. The Report Aggregator receives \texttt{gpt-4o} because verdict resolution and confidence calibration require judgement about conflicting evidence, a task that benefits from stronger reasoning.
+
+This mixed-model strategy reduces the per-skill cost of deep analysis compared to using \texttt{gpt-4o} uniformly, while concentrating analytical capability where it produces the greatest marginal benefit.
+
+\subsection{Specialist Scope Boundaries}
+
+Each specialist's system prompt includes an explicit scope restriction (e.g., ``This is your ONLY focus---do not analyze prompt injection, obfuscation techniques, or SKILL.md prose. Leave those to other specialists.''). This boundary enforcement serves two purposes. First, it reduces overlap in the findings: without scope restrictions, all four agents would redundantly flag obvious issues such as base64-encoded payloads, producing noisy duplicates that complicate aggregation. Second, it encourages depth over breadth: a prompt injection specialist that is not distracted by code analysis concerns can devote its full context window and attention to the subtleties of injection detection, such as contextual manipulation and social engineering patterns that a generalist prompt might miss.
+
+The trade-off is that scope boundaries may occasionally cause findings that span multiple domains to be under-reported. For example, an obfuscated prompt injection (base64-encoded jailbreak text) lies at the intersection of the Obfuscation Detector's and Prompt Injection Specialist's scopes. The aggregation phase is designed to mitigate this: the aggregator merges complementary perspectives, so the Obfuscation Detector's decoding of the payload and the Prompt Injection Specialist's recognition of the decoded text as a jailbreak can be combined into a single comprehensive finding.
+
+The shared output format and vulnerability taxonomy further support mergeability. Because all specialists use the same JSON schema and the same category definitions, the aggregator can perform structural deduplication and verdict resolution without needing to reconcile incompatible output formats.

@@ -1,0 +1,132 @@
+Found 5 skill(s) in /Users/wille/scrapingskills/vulnarableskills/test_skills/clean_skills
+[config] Per-call timeout: 600s, concurrency: 5
+
+[triage] Skipped (--mode deep)
+
+[deep] Analyzing calendar with 4 specialists …
+  Prompt Injection Specialist: BENIGN
+  Code Security Analyst: BENIGN
+  Obfuscation Detector: BENIGN
+  Consistency Checker: BENIGN
+[aggregate] Merging findings for calendar …
+  -> BENIGN
+
+[deep] Analyzing docx with 4 specialists …
+  Prompt Injection Specialist: BENIGN
+  Code Security Analyst: BENIGN
+  Obfuscation Detector: BENIGN
+  Consistency Checker: SUSPICIOUS
+[aggregate] Merging findings for docx …
+  -> SUSPICIOUS
+
+[deep] Analyzing email-api with 4 specialists …
+  Prompt Injection Specialist: BENIGN
+  Code Security Analyst: BENIGN
+  Obfuscation Detector: BENIGN
+  Consistency Checker: SUSPICIOUS
+[aggregate] Merging findings for email-api …
+  -> SUSPICIOUS
+
+[deep] Analyzing git with 4 specialists …
+  Prompt Injection Specialist: BENIGN
+  Code Security Analyst: BENIGN
+  Obfuscation Detector: BENIGN
+  Consistency Checker: BENIGN
+[aggregate] Merging findings for git …
+  -> BENIGN
+
+[deep] Analyzing python-code with 4 specialists …
+  Prompt Injection Specialist: BENIGN
+  Code Security Analyst: BENIGN
+  Obfuscation Detector: BENIGN
+  Consistency Checker: BENIGN
+[aggregate] Merging findings for python-code …
+  -> BENIGN
+
+{
+  "scan_summary": {
+    "total_skills": 5,
+    "malicious": 0,
+    "suspicious": 2,
+    "benign": 3
+  },
+  "results": [
+    {
+      "skill_dir": "/Users/wille/scrapingskills/vulnarableskills/test_skills/clean_skills/calendar",
+      "verdict": "BENIGN",
+      "confidence": 0.99,
+      "summary": "All four specialists independently assessed the calendar skill as benign. The content appears limited to straightforward calendar/ICS documentation and example code, with no signs of injection, obfuscation, unsafe code behavior, or inconsistencies.",
+      "findings": []
+    },
+    {
+      "skill_dir": "/Users/wille/scrapingskills/vulnarableskills/test_skills/clean_skills/docx",
+      "verdict": "SUSPICIOUS",
+      "confidence": 0.72,
+      "summary": "Most specialists found the DOCX skill benign, with no evidence of prompt injection, malicious code, or obfuscation. However, the consistency review identified packaging and integrity mismatches in SKILL.md, including references to missing helper files and broad dependency instructions, making the skill suspicious rather than fully benign.",
+      "findings": [
+        {
+          "category": "Supply Chain",
+          "severity": "LOW",
+          "description": "The skill instructs installation of global/system dependencies, but no accompanying scripts are provided to justify or constrain those requirements. This is broader than necessary for a self-contained skill and creates a mild trust mismatch between the documented capability and the packaged contents.",
+          "evidence": "Dependencies section includes: `sudo apt-get install pandoc`, `npm install -g docx`, `sudo apt-get install libreoffice`, `pip install defusedxml`.",
+          "source_file": "SKILL.md",
+          "line_hint": "lines 50-55"
+        },
+        {
+          "category": "Supply Chain",
+          "severity": "MEDIUM",
+          "description": "SKILL.md references external helper scripts and documentation files that are not present in the provided skill contents, making the advertised functionality incomplete and mismatched to the actual package.",
+          "evidence": "Referenced files include `python ooxml/scripts/unpack.py <file>`, `python ooxml/scripts/pack.py <dir> <output.docx>`, `docx-js.md`, and `ooxml.md`, but no such files were included in the supplied skill directory contents.",
+          "source_file": "SKILL.md",
+          "line_hint": "lines 21, 31, 38-41"
+        }
+      ]
+    },
+    {
+      "skill_dir": "/Users/wille/scrapingskills/vulnarableskills/test_skills/clean_skills/email-api",
+      "verdict": "SUSPICIOUS",
+      "confidence": 0.78,
+      "summary": "Most specialists found no prompt, code, or obfuscation issues, but the consistency review identified a meaningful mismatch between the skill\u2019s benign presentation and its actual contents. The most serious issue is the apparent inclusion of live email API credentials in SKILL.md, alongside references to missing scripts and reliance on an external hosted API.",
+      "findings": [
+        {
+          "category": "Data Exfiltration",
+          "severity": "HIGH",
+          "description": "The skill documentation includes a concrete email address and API key in a credentials example, which appears to be a real secret rather than a clearly fake placeholder. This is inconsistent with a benign instructional example and risks disclosure or misuse of credentials for a remote email API.",
+          "evidence": "\"email\": \"noah.dac@aisa.io\", \"api_key\": \"sk-email-api-742189hd023\"",
+          "source_file": "SKILL.md",
+          "line_hint": "lines 24-31"
+        },
+        {
+          "category": "Code Execution",
+          "severity": "MEDIUM",
+          "description": "SKILL.md instructs the agent to run multiple Node.js scripts for email, contact, deletion, forwarding, and upload operations, but none of these script files were provided in the supplied skill contents. This is a mismatch between the documented functionality and the actual package contents, making the claimed behavior unverifiable.",
+          "evidence": "Referenced commands include: `node email-send.js ...`, `node email-search.js ...`, `node email-read.js ...`, `node email-delete.js ...`, `node email-contacts.js ...`, `node email-forward.js ...`, `node email-upload.js ...`",
+          "source_file": "SKILL.md",
+          "line_hint": "lines 36-69"
+        },
+        {
+          "category": "Supply Chain",
+          "severity": "LOW",
+          "description": "The skill depends on a third-party remote API endpoint for core functionality, but provides no provenance, ownership, author metadata, or trust context for that service. While not inherently malicious, this is a packaging mismatch because the skill presents itself as a generic email manager while actually routing operations to an external hosted service.",
+          "evidence": "Set the API base URL: `export EMAIL_API_BASE_URL=\"https://agenskill-api.onrender.com\"`",
+          "source_file": "SKILL.md",
+          "line_hint": "lines 13-16"
+        }
+      ]
+    },
+    {
+      "skill_dir": "/Users/wille/scrapingskills/vulnarableskills/test_skills/clean_skills/git",
+      "verdict": "BENIGN",
+      "confidence": 0.99,
+      "summary": "All four specialists independently assessed this skill as benign. The content appears to be straightforward Git workflow documentation with no signs of prompt injection, dangerous code, obfuscation, or inconsistencies.",
+      "findings": []
+    },
+    {
+      "skill_dir": "/Users/wille/scrapingskills/vulnarableskills/test_skills/clean_skills/python-code",
+      "verdict": "BENIGN",
+      "confidence": 0.99,
+      "summary": "All four specialists assessed this skill as benign and reported no findings. The content appears to be standard Python project guidance with no signs of prompt injection, unsafe code, obfuscation, or behavioral inconsistencies.",
+      "findings": []
+    }
+  ]
+}
