@@ -18,6 +18,9 @@ ai-scanner/
 benign-skills/
   Benign sample skills used as part of the evaluation.
 
+public-skills/
+  Publicly available skills collected for real-world scanner evaluation.
+
 vulnerable-skills/
   Intentionally vulnerable sample skills used for scanner testing.
 
@@ -68,6 +71,12 @@ Run the static scanner on a skill directory:
 
 ```bash
 python scanner/scan.py vulnerable-skills/
+```
+
+Scan the publicly available skill corpus:
+
+```bash
+python scanner/scan.py public-skills/
 ```
 
 Run the AI-assisted scanner:
