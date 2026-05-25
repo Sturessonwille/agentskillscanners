@@ -25,7 +25,7 @@ vulnerable-skills/
   Intentionally vulnerable sample skills used for scanner testing.
 
 test_skills/
-  SKILL-INJECT style clean and injected test corpus.
+  Exact benchmark data copied from the SKILL-INJECT repository.
 
 results/
   Saved evaluation outputs.
@@ -86,10 +86,10 @@ cd ai-scanner
 python ai_scan.py ../vulnerable-skills/
 ```
 
-Run the SKILL-INJECT evaluation with the static scanner only:
+Scan the clean skills copied from SKILL-INJECT:
 
 ```bash
-python eval_skillinject.py --static-only
+python scanner/scan.py test_skills/skills/
 ```
 
 Run evaluation using existing result files:
@@ -106,3 +106,5 @@ python eval_labeled_skills.py \
 ## Notes for Reviewers
 
 This repository is intended to support a thesis presentation and make the prototype reproducible. The generated result files are included to document the evaluation, while local secrets, virtual environments, caches, and editor state are excluded.
+
+The `test_skills/` directory contains benchmark data copied from the [SKILL-INJECT benchmark](https://github.com/aisa-group/skill-inject), including its clean skill definitions, injection definition files, task scripts, and task files. SKILL-INJECT should be cited when using this corpus.
